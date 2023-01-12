@@ -292,7 +292,7 @@ def goToCoordinate(targetCoordinate):
             0)) #yaw rate in rad/s
 
 
-cameraRotationInDegrees = 0
+cameraRotationInDegrees = -90
 
 def getTargetCoordinate(location, heading, deltaX, deltaY):
     #Position, decimal degrees
