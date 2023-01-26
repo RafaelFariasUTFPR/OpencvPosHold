@@ -5,17 +5,14 @@ from pymavlink import mavutil
 from dronekit import connect, VehicleMode, LocationGlobalRelative, APIException
 
 
-from imutils.video.pivideostream import PiVideoStream
 
-from picamera.array import PiRGBArray
-from picamera import PiCamera
 
 
 
 import numpy as np
 from argparse import ArgumentParser
 
-
+import math
 import argparse
 import imutils
 import time
@@ -30,6 +27,17 @@ CAP_HEIGHT = 480
 MARKER_SIZE = 0.145  # metros
 
 TARGET_ID = 2
+
+class Coordinate:
+    lat = 0
+    lon = 0
+    alt = 0
+
+    def __init__(self, lat, lon, alt):
+        self.lat = lat
+        self.lon = lon
+        self.alt = alt
+
 
 
 parser = ArgumentParser()
@@ -54,6 +62,10 @@ useCap = parser.parse_args().cap
 print(f"ehSimulacao: {ehSimulacao}, recordCamera: {recordCamera}, have_display: {have_display}, useCap: {useCap}")
 
 
+if(not useCap):
+    from imutils.video.pivideostream import PiVideoStream
+    from picamera.array import PiRGBArray
+    from picamera import PiCamera
 
 
 baud_rate = 57600
@@ -176,6 +188,7 @@ def getVs():
     time.sleep(1.0)
     return ret
 
+# Video stream
 vs = getVs()
 
 
@@ -237,15 +250,6 @@ def stayStill():
     
 
 def processAutoFlight(deltaX, deltaY, deltaZ):
-    if not vehicle.armed:
-        print("Nao armado")
-        print(vehicle.mode.name)
-        if False: #wasArmed:
-            print("desligando")
-            endProgramAndShutDown()
-        return
-    wasArmed = True
-
     if vehicle.mode.name != "GUIDED":
         return
     the_connection.mav.send(
@@ -267,6 +271,66 @@ def processAutoFlight(deltaX, deltaY, deltaZ):
             0)) #yaw rate in rad/s
 
 
+def goToCoordinate(targetCoordinate):
+    the_connection.mav.send(
+		mavutil.mavlink.MAVLink_set_position_target_global_int_message(
+            0, 
+            the_connection.target_system,
+            the_connection.target_component, 
+            mavutil.mavlink.MAV_FRAME_GLOBAL_TERRAIN_ALT_INT,   # alt is in meters above terrain
+            int(0b110111111000),                                # Use Position : 0b110111111000 / 0x0DF8 / 3576 (decimal)
+            int(targetCoordinate.lat * 1e7),                    # Latitude * 1e7
+            int(targetCoordinate.lon * 1e7),                    # Longitude * 1e7
+            targetCoordinate.alt,                               # Alt in meters
+            0, #X velocity in m/s (positive is forward or North)
+            0,  #Y velocity in m/s (positive is right or East)
+            0,  #Z velocity in m/s (positive is down)
+            0,  #X acceleration in m/s/s (positive is forward or North)
+            0,  #Y acceleration in m/s/s (positive is right or East)
+            0,  #Z acceleration in m/s/s (positive is down)
+            0,  #yaw or heading in radians (0 is forward or North)
+            0)) #yaw rate in rad/s
+
+
+cameraRotationInDegrees = -90
+
+def getTargetCoordinate(location, heading, deltaX, deltaY):
+    #Position, decimal degrees
+    lat = location.lat
+    lon = location.lon
+
+    #Earth’s radius, sphere
+    R=6378137
+
+    hdgInRadians = math.radians(heading + cameraRotationInDegrees)
+
+
+    # Calculando a posição relativa do alvo com referencia ao heading
+    yAdjusted = (math.cos(hdgInRadians) * deltaY)
+    yAdjusted = yAdjusted + (math.sin(hdgInRadians) * deltaX)
+
+    xAdjusted = (math.sin(hdgInRadians) * deltaY)
+    xAdjusted = xAdjusted + (math.cos(hdgInRadians) * deltaX)
+
+
+    dn = yAdjusted
+    de = xAdjusted
+
+
+    #Coordinate offsets in radians
+    dLat = dn/R
+    dLon = de/(R*math.cos(math.pi*lat/180))
+
+    #OffsetPosition, decimal degrees
+    latO = lat + dLat * 180/math.pi
+    lonO = lon + dLon * 180/math.pi
+
+    return Coordinate(latO, lonO, location.alt)
+
+hasFoundTargetOnce = False
+estimatedTargetCoordinate = Coordinate(vehicle.location.global_relative_frame.lat,vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.alt)
+
+
 while True:
     print("")
     frame = getFrame(vs)
@@ -277,6 +341,11 @@ while True:
     fps = 1.0 / (currentTime - lastTime)
     lastTime = currentTime
     fps = round(fps, 1)
+
+    droneLocation = vehicle.location.global_relative_frame
+    droneHeading = vehicle.heading
+    print(f"Target: lat{estimatedTargetCoordinate.lat} lon{estimatedTargetCoordinate.lon}", end = '')
+
 
     if have_display or recordCamera:
         cv2.putText(
@@ -295,6 +364,7 @@ while True:
 
     print(f"tags:{format(len(results))} fps:{fps}", end = '')
 
+    isTargetOnFrame = False
     
     for r in results:
         id = r.tag_id
@@ -332,7 +402,7 @@ while True:
                 f"id: {id}",            # Texto
                 ptD,                    # Posição
                 cv2.FONT_HERSHEY_PLAIN, # Fonte
-                1.2,                      # Tamanho
+                1.2,                    # Tamanho
                 (0, 0, 255),            # Cor
                 2,                      # Grossura
                 cv2.LINE_AA
@@ -343,12 +413,15 @@ while True:
             cam_params,
             MARKER_SIZE)
         if id == TARGET_ID:
+            hasFoundTargetOnce = True
             tvec = pose[:3, 3]
             yTagPos = tvec[0]
             xTagPos = tvec[1]
             zTagPos = tvec[2]
             print(f" x:{xTagPos} y:{yTagPos} z:{zTagPos}", end = '')
-            processAutoFlight(xTagPos, yTagPos, zTagPos)
+            estimatedTargetCoordinate = getTargetCoordinate(droneLocation, droneHeading, xTagPos, yTagPos)
+            #processAutoFlight(xTagPos, yTagPos, zTagPos)
+            isTargetOnFrame = True
 
         if have_display:
             _draw_pose(
@@ -358,6 +431,8 @@ while True:
                 pose)
     if recordCamera:
         videoWriter.write(frame)
+    if hasFoundTargetOnce:
+        goToCoordinate(estimatedTargetCoordinate)
 
     if have_display:
         # show the output image after AprilTag detection
