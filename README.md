@@ -1,3 +1,8 @@
+# Link para a documentação [https://zrafaf.github.io/OpencvPosHold/](https://zrafaf.github.io/OpencvPosHold/)
+
+* ## [Baixar PDF gerado automaticamente](https://github.com/ZRafaF/OpencvPosHold/raw/gh-pages/pdf/document.pdf)
+
+
 # CREDITOS
 
 - Códigos em python: [Basic-Augmented-reality-course-opencv](https://github.com/Asadullah-Dal17/Basic-Augmented-reality-course-opencv) muito obrigado!
