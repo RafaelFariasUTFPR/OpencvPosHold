@@ -36,6 +36,7 @@ plugins:
     - with-pdf:
         author: Rafael Farias
         toc_title: Tabela de conteúdos
+        #debug_html: true
         #two_columns_level: 3
         #custom_template_path: docs/styles.scss
     - pdf-export
@@ -66,6 +67,9 @@ nav:
     - Hardware:
         - hardware/hardware.md
         - hardware/controladora_de_voo.md
+        - hardware/frame.md
     - Software:
         - software/software.md
+        - API:
+            - software/api/api.md
 

@@ -1,5 +1,7 @@
 # Controladora de voo
 
+## Mini Pix
+
 A controladora escolhida foi a Mini Pix V1.0. Este modelo é baseado na arquitetura da PixHawk.
 
 !!! warning 
@@ -12,11 +14,8 @@ A controladora escolhida foi a Mini Pix V1.0. Este modelo é baseado na arquitet
 
     Essa documentação pode ser encontrada [aqui](https://ardupilot.org/copter/docs/common-radiolink-minipix.html).
 
+![Controladora de voo miniPix](2023-01-26-20-16-05.png)
 
-![Controladora de voo miniPix](https://ae01.alicdn.com/kf/Sc916530ee1b74765b0447ba8f250126eQ/Radiolink-mini-pix-v1-2-controlador-de-v-o-m8n-gps-ts100-mesmo-que-pixhawk-fc.jpg)
+## ArduPilot
 
-
-
-
-## Experiência durante o projeto
-
+O firmware ArduPilot foi escolhido devido a sua flexibilidade e facilidade de integração com os outros componentes requeridos pelo projeto.
