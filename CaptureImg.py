@@ -1,3 +1,8 @@
+# Copyright (c) 2023 ZRafaF
+# 
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
 ## Derivado de https://github.com/Asadullah-Dal17/Basic-Augmented-reality-course-opencv
 ## por favor visite o criador original
 

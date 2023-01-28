@@ -1,3 +1,8 @@
+# Copyright (c) 2023 ZRafaF
+# 
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
 from __future__ import print_function
 import numpy as np
 import cv2
