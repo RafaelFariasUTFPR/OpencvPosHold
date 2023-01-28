@@ -25,10 +25,19 @@ theme:
         - search.suggest
         - toc.follow
         - content.code.copy
-
+    icon:
+        admonition:
+            admonition-windows: simple/windows
+            admonition-linux: simple/linux
+            admonition-raspi: simple/raspberrypi
+            admonition-pc: fontawesome/solid/computer
 
 #docs_dir: 'docsSrc'
 #site_dir: 'docs'
+
+extra_css:
+  - stylesheets/extra.css
+
 
 plugins:
     - search:
@@ -38,7 +47,7 @@ plugins:
         toc_title: Tabela de conteúdos
         #debug_html: true
         #two_columns_level: 3
-        #custom_template_path: docs/styles.scss
+        #custom_template_path: docs/pdfTemplates
     - pdf-export
 
 markdown_extensions:
@@ -58,18 +67,31 @@ markdown_extensions:
     - pymdownx.mark
     - pymdownx.tilde
     - attr_list
+    - md_in_html
     - pymdownx.emoji:
         emoji_index: !!python/name:materialx.emoji.twemoji
         emoji_generator: !!python/name:materialx.emoji.to_svg
 
 nav:
-    - Home: index.md
+    - Home: 
+        - index.md
+        - Setup: setup.md
+    
+    - Utilização:
+        - utilizacao/index.md
+        - utilizacao/missao.md
+        - utilizacao/simulacao.md
+
     - Hardware:
-        - hardware/hardware.md
+        - hardware/index.md
         - hardware/controladora_de_voo.md
         - hardware/frame.md
+    
     - Software:
-        - software/software.md
+        - software/index.md
         - API:
             - software/api/api.md
+    
+    - Sobre:
+        - sobre/index.md
 
