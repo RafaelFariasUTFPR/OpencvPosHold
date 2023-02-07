@@ -1,5 +1,5 @@
 # Copyright (c) 2023 ZRafaF
-# 
+#
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
@@ -8,10 +8,6 @@ from __future__ import print_function
 import apriltag
 from pymavlink import mavutil
 from dronekit import connect, VehicleMode, LocationGlobalRelative, APIException
-
-
-
-
 
 
 import numpy as np
@@ -24,14 +20,14 @@ import time
 import cv2
 
 
-
-#cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
 CAP_WIDTH = 640
 CAP_HEIGHT = 480
 
 MARKER_SIZE = 0.145  # metros
 
 TARGET_ID = 2
+
 
 class Coordinate:
     lat = 0
@@ -44,19 +40,26 @@ class Coordinate:
         self.alt = alt
 
 
-
 parser = ArgumentParser()
 parser.add_argument(
-    "-s", "--simulation", help="Executar como simulador", default=False, action='store_true'
+    "-s",
+    "--simulation",
+    help="Executar como simulador",
+    default=False,
+    action="store_true",
 )
 parser.add_argument(
-    "-r", "--record",  help="Gravar camera?", default=False, action='store_true'
+    "-r", "--record", help="Gravar camera?", default=False, action="store_true"
 )
 parser.add_argument(
-    "-d","--display",  help="Tem display", default=False, action='store_true'
+    "-d", "--display", help="Tem display", default=False, action="store_true"
 )
 parser.add_argument(
-    "-c","--cap",  help="Usar funcao cap.read do opencv ao inves da pycam", default=False, action='store_true'
+    "-c",
+    "--cap",
+    help="Usar funcao cap.read do opencv ao inves da pycam",
+    default=False,
+    action="store_true",
 )
 
 ehSimulacao = parser.parse_args().simulation
@@ -64,43 +67,54 @@ recordCamera = parser.parse_args().record
 have_display = parser.parse_args().display
 useCap = parser.parse_args().cap
 
-print(f"ehSimulacao: {ehSimulacao}, recordCamera: {recordCamera}, have_display: {have_display}, useCap: {useCap}")
+print(
+    f"ehSimulacao: {ehSimulacao}, recordCamera: {recordCamera}, have_display: {have_display}, useCap: {useCap}"
+)
 
 
-if(not useCap):
+if not useCap:
     from imutils.video.pivideostream import PiVideoStream
     from picamera.array import PiRGBArray
     from picamera import PiCamera
 
 
 baud_rate = 57600
+
+
 def conectarV():
     if ehSimulacao:
         return connect("udpin:localhost:14551")
     else:
         return connect("/dev/ttyAMA0", baud=baud_rate, wait_ready=False)
-        
+
+
 print("Aguardando conexao")
 vehicle = conectarV()
 the_connection = vehicle._master
 print("Conectado!")
 
 # Parametros gerados do script aprilCalibrateCam.py
-cam_params = (630.8669379442165, 630.3123204518172, 335.75042566981904, 227.83332282734318)
+cam_params = (
+    630.8669379442165,
+    630.3123204518172,
+    335.75042566981904,
+    227.83332282734318,
+)
 
-#calib_data_path = "calib_data/CamParam.npz"
-#calib_data = np.load(calib_data_path)
-#cam_params = calib_data["cameraParams"]
+# calib_data_path = "calib_data/CamParam.npz"
+# calib_data = np.load(calib_data_path)
+# cam_params = calib_data["cameraParams"]
 
 print(f"cam_params: {cam_params}")
 
 
 options = apriltag.DetectorOptions(
-                families="tag16h5",
-                refine_edges=True,
-                refine_decode=True,
-                refine_pose=True,
-                quad_contours=True)
+    families="tag16h5",
+    refine_edges=True,
+    refine_decode=True,
+    refine_pose=True,
+    quad_contours=True,
+)
 
 
 """
@@ -120,42 +134,52 @@ options = apriltag.Detectoroptions(families='tag36h11',
 detector = apriltag.Detector(options)
 
 
-
 lastTime = 0
 
+
 def _draw_pose(overlay, camera_params, tag_size, pose, z_sign=1):
+    opoints = (
+        np.array(
+            [
+                -1,
+                -1,
+                0,
+                1,
+                -1,
+                0,
+                1,
+                1,
+                0,
+                -1,
+                1,
+                0,
+                -1,
+                -1,
+                -2 * z_sign,
+                1,
+                -1,
+                -2 * z_sign,
+                1,
+                1,
+                -2 * z_sign,
+                -1,
+                1,
+                -2 * z_sign,
+            ]
+        ).reshape(-1, 1, 3)
+        * 0.5
+        * tag_size
+    )
 
-    opoints = np.array([
-        -1, -1, 0,
-         1, -1, 0,
-         1,  1, 0,
-        -1,  1, 0,
-        -1, -1, -2*z_sign,
-         1, -1, -2*z_sign,
-         1,  1, -2*z_sign,
-        -1,  1, -2*z_sign,
-    ]).reshape(-1, 1, 3) * 0.5*tag_size
+    edges = np.array(
+        [0, 1, 1, 2, 2, 3, 3, 0, 0, 4, 1, 5, 2, 6, 3, 7, 4, 5, 5, 6, 6, 7, 7, 4]
+    ).reshape(-1, 2)
 
-    edges = np.array([
-        0, 1,
-        1, 2,
-        2, 3,
-        3, 0,
-        0, 4,
-        1, 5,
-        2, 6,
-        3, 7,
-        4, 5,
-        5, 6,
-        6, 7,
-        7, 4
-    ]).reshape(-1, 2)
-        
     fx, fy, cx, cy = camera_params
 
     K = np.array([fx, 0, cx, 0, fy, cy, 0, 0, 1]).reshape(3, 3)
 
-    rvec, _ = cv2.Rodrigues(pose[:3,:3])
+    rvec, _ = cv2.Rodrigues(pose[:3, :3])
     tvec = pose[:3, 3]
 
     dcoeffs = np.zeros(5)
@@ -163,7 +187,7 @@ def _draw_pose(overlay, camera_params, tag_size, pose, z_sign=1):
     ipoints, _ = cv2.projectPoints(opoints, rvec, tvec, K, dcoeffs)
 
     ipoints = np.round(ipoints).astype(int)
-    
+
     ipoints = [tuple(pt) for pt in ipoints.reshape(-1, 2)]
 
     for i, j in edges:
@@ -175,10 +199,7 @@ if not useCap:
     camera.resolution = (CAP_WIDTH, CAP_HEIGHT)
     camera.framerate = 32
     rawCapture = PiRGBArray(camera, size=(CAP_WIDTH, CAP_HEIGHT))
-    stream = camera.capture_continuous(
-        rawCapture, 
-        format="bgr",
-        use_video_port=True)
+    stream = camera.capture_continuous(rawCapture, format="bgr", use_video_port=True)
     camera.close()
 
 
@@ -193,6 +214,7 @@ def getVs():
     time.sleep(1.0)
     return ret
 
+
 # Video stream
 vs = getVs()
 
@@ -206,12 +228,12 @@ def getFrame(vs_input):
     return frame
 
 
-#fourcc = cv2.VideoWriter_fourcc('X','V','I','D')
-#videoWriter = cv2.VideoWriter('video.avi', fourcc, 15.0, (CAP_WIDTH, CAP_HEIGHT))
-fourcc = cv2.VideoWriter_fourcc('X','V','I','D')
-#fourcc = cv2.VideoWriter_fourcc('I','4','2','0')
+# fourcc = cv2.VideoWriter_fourcc('X','V','I','D')
+# videoWriter = cv2.VideoWriter('video.avi', fourcc, 15.0, (CAP_WIDTH, CAP_HEIGHT))
+fourcc = cv2.VideoWriter_fourcc("X", "V", "I", "D")
+# fourcc = cv2.VideoWriter_fourcc('I','4','2','0')
 
-videoWriter = cv2.VideoWriter('video.avi', fourcc, 10.0, (CAP_WIDTH, CAP_HEIGHT))
+videoWriter = cv2.VideoWriter("video.avi", fourcc, 10.0, (CAP_WIDTH, CAP_HEIGHT))
 
 """ MASKS
 
@@ -232,108 +254,122 @@ videoWriter = cv2.VideoWriter('video.avi', fourcc, 10.0, (CAP_WIDTH, CAP_HEIGHT)
 
 type_mask = int(0b110111111000)  # mascara para usar apenas a velocidade
 
+
 def stayStill():
     if vehicle.mode.name != "GUIDED":
         return
     the_connection.mav.send(
-		mavutil.mavlink.MAVLink_set_position_target_local_ned_message(
-            10, the_connection.target_system,
-            the_connection.target_component, 
-            mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED, 
-            type_mask, 
-            0,  #X Position in meters (positive is forward or North)
-            0,  #Y Position in meters (positive is right or East)
-            0,  #Z Position in meters (positive is down)
-            0, #X velocity in m/s (positive is forward or North)
-            0,  #Y velocity in m/s (positive is right or East)
-            0,  #Z velocity in m/s (positive is down)
-            0,  #X acceleration in m/s/s (positive is forward or North)
-            0,  #Y acceleration in m/s/s (positive is right or East)
-            0,  #Z acceleration in m/s/s (positive is down)
-            0,  #yaw or heading in radians (0 is forward or North)
-            0)) #yaw rate in rad/s
-    
+        mavutil.mavlink.MAVLink_set_position_target_local_ned_message(
+            10,
+            the_connection.target_system,
+            the_connection.target_component,
+            mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED,
+            type_mask,
+            0,  # X Position in meters (positive is forward or North)
+            0,  # Y Position in meters (positive is right or East)
+            0,  # Z Position in meters (positive is down)
+            0,  # X velocity in m/s (positive is forward or North)
+            0,  # Y velocity in m/s (positive is right or East)
+            0,  # Z velocity in m/s (positive is down)
+            0,  # X acceleration in m/s/s (positive is forward or North)
+            0,  # Y acceleration in m/s/s (positive is right or East)
+            0,  # Z acceleration in m/s/s (positive is down)
+            0,  # yaw or heading in radians (0 is forward or North)
+            0,
+        )
+    )  # yaw rate in rad/s
+
 
 def processAutoFlight(deltaX, deltaY, deltaZ):
     if vehicle.mode.name != "GUIDED":
         return
     the_connection.mav.send(
-		mavutil.mavlink.MAVLink_set_position_target_local_ned_message(
-            10, the_connection.target_system,
-            the_connection.target_component, 
-            mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED, 
-            type_mask, 
-            deltaX,  #X Position in meters (positive is forward or North)
-            deltaY,  #Y Position in meters (positive is right or East)
-            0,  #Z Position in meters (positive is down)
-            0, #X velocity in m/s (positive is forward or North)
-            0,  #Y velocity in m/s (positive is right or East)
-            0,  #Z velocity in m/s (positive is down)
-            0,  #X acceleration in m/s/s (positive is forward or North)
-            0,  #Y acceleration in m/s/s (positive is right or East)
-            0,  #Z acceleration in m/s/s (positive is down)
-            0,  #yaw or heading in radians (0 is forward or North)
-            0)) #yaw rate in rad/s
+        mavutil.mavlink.MAVLink_set_position_target_local_ned_message(
+            10,
+            the_connection.target_system,
+            the_connection.target_component,
+            mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED,
+            type_mask,
+            deltaX,  # X Position in meters (positive is forward or North)
+            deltaY,  # Y Position in meters (positive is right or East)
+            0,  # Z Position in meters (positive is down)
+            0,  # X velocity in m/s (positive is forward or North)
+            0,  # Y velocity in m/s (positive is right or East)
+            0,  # Z velocity in m/s (positive is down)
+            0,  # X acceleration in m/s/s (positive is forward or North)
+            0,  # Y acceleration in m/s/s (positive is right or East)
+            0,  # Z acceleration in m/s/s (positive is down)
+            0,  # yaw or heading in radians (0 is forward or North)
+            0,
+        )
+    )  # yaw rate in rad/s
 
 
 def goToCoordinate(targetCoordinate):
     the_connection.mav.send(
-		mavutil.mavlink.MAVLink_set_position_target_global_int_message(
-            0, 
+        mavutil.mavlink.MAVLink_set_position_target_global_int_message(
+            0,
             the_connection.target_system,
-            the_connection.target_component, 
-            mavutil.mavlink.MAV_FRAME_GLOBAL_TERRAIN_ALT_INT,   # alt is in meters above terrain
-            int(0b110111111000),                                # Use Position : 0b110111111000 / 0x0DF8 / 3576 (decimal)
-            int(targetCoordinate.lat * 1e7),                    # Latitude * 1e7
-            int(targetCoordinate.lon * 1e7),                    # Longitude * 1e7
-            targetCoordinate.alt,                               # Alt in meters
-            0, #X velocity in m/s (positive is forward or North)
-            0,  #Y velocity in m/s (positive is right or East)
-            0,  #Z velocity in m/s (positive is down)
-            0,  #X acceleration in m/s/s (positive is forward or North)
-            0,  #Y acceleration in m/s/s (positive is right or East)
-            0,  #Z acceleration in m/s/s (positive is down)
-            0,  #yaw or heading in radians (0 is forward or North)
-            0)) #yaw rate in rad/s
+            the_connection.target_component,
+            mavutil.mavlink.MAV_FRAME_GLOBAL_TERRAIN_ALT_INT,  # alt is in meters above terrain
+            int(
+                0b110111111000
+            ),  # Use Position : 0b110111111000 / 0x0DF8 / 3576 (decimal)
+            int(targetCoordinate.lat * 1e7),  # Latitude * 1e7
+            int(targetCoordinate.lon * 1e7),  # Longitude * 1e7
+            targetCoordinate.alt,  # Alt in meters
+            0,  # X velocity in m/s (positive is forward or North)
+            0,  # Y velocity in m/s (positive is right or East)
+            0,  # Z velocity in m/s (positive is down)
+            0,  # X acceleration in m/s/s (positive is forward or North)
+            0,  # Y acceleration in m/s/s (positive is right or East)
+            0,  # Z acceleration in m/s/s (positive is down)
+            0,  # yaw or heading in radians (0 is forward or North)
+            0,
+        )
+    )  # yaw rate in rad/s
 
 
 cameraRotationInDegrees = -90
 
+
 def getTargetCoordinate(location, heading, deltaX, deltaY):
-    #Position, decimal degrees
+    # Position, decimal degrees
     lat = location.lat
     lon = location.lon
 
-    #Earth’s radius, sphere
-    R=6378137
+    # Earth’s radius, sphere
+    R = 6378137
 
     hdgInRadians = math.radians(heading + cameraRotationInDegrees)
 
-
     # Calculando a posição relativa do alvo com referencia ao heading
-    yAdjusted = (math.cos(hdgInRadians) * deltaY)
+    yAdjusted = math.cos(hdgInRadians) * deltaY
     yAdjusted = yAdjusted + (math.sin(hdgInRadians) * deltaX)
 
-    xAdjusted = (math.sin(hdgInRadians) * deltaY)
+    xAdjusted = math.sin(hdgInRadians) * deltaY
     xAdjusted = xAdjusted + (math.cos(hdgInRadians) * deltaX)
-
 
     dn = yAdjusted
     de = xAdjusted
 
+    # Coordinate offsets in radians
+    dLat = dn / R
+    dLon = de / (R * math.cos(math.pi * lat / 180))
 
-    #Coordinate offsets in radians
-    dLat = dn/R
-    dLon = de/(R*math.cos(math.pi*lat/180))
-
-    #OffsetPosition, decimal degrees
-    latO = lat + dLat * 180/math.pi
-    lonO = lon + dLon * 180/math.pi
+    # OffsetPosition, decimal degrees
+    latO = lat + dLat * 180 / math.pi
+    lonO = lon + dLon * 180 / math.pi
 
     return Coordinate(latO, lonO, location.alt)
 
+
 hasFoundTargetOnce = False
-estimatedTargetCoordinate = Coordinate(vehicle.location.global_relative_frame.lat,vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.alt)
+estimatedTargetCoordinate = Coordinate(
+    vehicle.location.global_relative_frame.lat,
+    vehicle.location.global_relative_frame.lon,
+    vehicle.location.global_relative_frame.alt,
+)
 
 
 while True:
@@ -342,39 +378,40 @@ while True:
 
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    currentTime= time.time()
+    currentTime = time.time()
     fps = 1.0 / (currentTime - lastTime)
     lastTime = currentTime
     fps = round(fps, 1)
 
     droneLocation = vehicle.location.global_relative_frame
     droneHeading = vehicle.heading
-    print(f"Target: lat{estimatedTargetCoordinate.lat} lon{estimatedTargetCoordinate.lon}", end = '')
-
+    print(
+        f"Target: lat{estimatedTargetCoordinate.lat} lon{estimatedTargetCoordinate.lon}",
+        end="",
+    )
 
     if have_display or recordCamera:
         cv2.putText(
-                frame,
-                f"fps: {fps}",
-                (0,20),
-                cv2.FONT_HERSHEY_PLAIN,
-                0.8,
-                (0, 255, 0),
-                1,
-                cv2.LINE_AA,
-            )
+            frame,
+            f"fps: {fps}",
+            (0, 20),
+            cv2.FONT_HERSHEY_PLAIN,
+            0.8,
+            (0, 255, 0),
+            1,
+            cv2.LINE_AA,
+        )
 
-    
     results = detector.detect(gray_frame)
 
-    print(f"tags:{format(len(results))} fps:{fps}", end = '')
+    print(f"tags:{format(len(results))} fps:{fps}", end="")
 
     isTargetOnFrame = False
-    
+
     for r in results:
         id = r.tag_id
         tagFamily = r.tag_family.decode("utf-8")
-        
+
         if have_display or recordCamera:
             # extract the bounding box (x, y)-coordinates for the AprilTag
             # and convert each of the (x, y)-coordinate pairs to integers
@@ -392,48 +429,43 @@ while True:
             (cX, cY) = (int(r.center[0]), int(r.center[1]))
             cv2.circle(frame, (cX, cY), 5, (0, 0, 255), -1)
             # draw the tag family on the image
-            
+
             cv2.putText(
-                frame, 
-                tagFamily, 
+                frame,
+                tagFamily,
                 (ptA[0], ptA[1] - 15),
-                cv2.FONT_HERSHEY_PLAIN, 
-                1.5, 
-                (0, 255, 0), 
-                2
+                cv2.FONT_HERSHEY_PLAIN,
+                1.5,
+                (0, 255, 0),
+                2,
             )
             cv2.putText(
-                frame,                  # frame
-                f"id: {id}",            # Texto
-                ptD,                    # Posição
-                cv2.FONT_HERSHEY_PLAIN, # Fonte
-                1.2,                    # Tamanho
-                (0, 0, 255),            # Cor
-                2,                      # Grossura
-                cv2.LINE_AA
+                frame,  # frame
+                f"id: {id}",  # Texto
+                ptD,  # Posição
+                cv2.FONT_HERSHEY_PLAIN,  # Fonte
+                1.2,  # Tamanho
+                (0, 0, 255),  # Cor
+                2,  # Grossura
+                cv2.LINE_AA,
             )
-        print(f" id: {id}", end = '')
-        pose, e0, e1 = detector.detection_pose(
-            r,
-            cam_params,
-            MARKER_SIZE)
+        print(f" id: {id}", end="")
+        pose, e0, e1 = detector.detection_pose(r, cam_params, MARKER_SIZE)
         if id == TARGET_ID:
             hasFoundTargetOnce = True
             tvec = pose[:3, 3]
             yTagPos = tvec[0]
             xTagPos = tvec[1]
             zTagPos = tvec[2]
-            print(f" x:{xTagPos} y:{yTagPos} z:{zTagPos}", end = '')
-            estimatedTargetCoordinate = getTargetCoordinate(droneLocation, droneHeading, xTagPos, yTagPos)
-            #processAutoFlight(xTagPos, yTagPos, zTagPos)
+            print(f" x:{xTagPos} y:{yTagPos} z:{zTagPos}", end="")
+            estimatedTargetCoordinate = getTargetCoordinate(
+                droneLocation, droneHeading, xTagPos, yTagPos
+            )
+            # processAutoFlight(xTagPos, yTagPos, zTagPos)
             isTargetOnFrame = True
 
         if have_display:
-            _draw_pose(
-                frame,
-                cam_params,
-                MARKER_SIZE,
-                pose)
+            _draw_pose(frame, cam_params, MARKER_SIZE, pose)
     if recordCamera:
         videoWriter.write(frame)
     if hasFoundTargetOnce:
@@ -441,8 +473,8 @@ while True:
 
     if have_display:
         # show the output image after AprilTag detection
-        cv2.imshow("Image", frame)    
-        
+        cv2.imshow("Image", frame)
+
         key = cv2.waitKey(1)
         if key == ord("q"):
             break

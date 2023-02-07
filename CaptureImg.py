@@ -1,5 +1,5 @@
 # Copyright (c) 2023 ZRafaF
-# 
+#
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
@@ -9,7 +9,7 @@
 import cv2
 import os
 
-print("Opencv version: ",cv2.__version__)
+print("Opencv version: ", cv2.__version__)
 
 # Dimensão do tabuleiro
 CHESS_BOARD_DIM = (9, 6)
@@ -33,7 +33,7 @@ cap = cv2.VideoCapture(0)
 ## comprimindo a captura
 cap.set(3, 640)
 cap.set(4, 480)
-cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
 
 
 while True:

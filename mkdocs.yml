@@ -17,6 +17,8 @@ theme:
         accent: teal
 
     locale: pt_BR
+    language: pt-BR                     # lingua do mkdocs-material
+
     features:
         - navigation.sections
         - navigation.tabs
@@ -25,6 +27,7 @@ theme:
         - navigation.tracking
         - navigation.path
         - navigation.indexes
+        - navigation.footer
         - search.highlight
         - search.share
         - search.suggest
@@ -50,10 +53,12 @@ plugins:
     - with-pdf:
         author: Rafael Farias
         toc_title: Tabela de conteúdos
+        enabled_if_env: ENABLE_PDF_EXPORT
         #debug_html: true
         #two_columns_level: 3
         #custom_template_path: docs/pdfTemplates
-    - pdf-export
+    - pdf-export:
+        enabled_if_env: ENABLE_PDF_EXPORT
 
 markdown_extensions:
     - pymdownx.highlight:
@@ -76,6 +81,8 @@ markdown_extensions:
     - pymdownx.emoji:
         emoji_index: !!python/name:materialx.emoji.twemoji
         emoji_generator: !!python/name:materialx.emoji.to_svg
+    - toc:
+        permalink: true
 
 nav:
     - Home: 
