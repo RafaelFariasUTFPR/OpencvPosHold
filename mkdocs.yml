@@ -51,7 +51,8 @@ plugins:
     - search:
         separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
     - with-pdf:
-        author: Rafael Farias
+        author: Rafael Farias Meneses
+        cover_subtitle: Missões autônomas e manutenção de posição
         toc_title: Tabela de conteúdos
         enabled_if_env: ENABLE_PDF_EXPORT
         #debug_html: true
@@ -91,13 +92,14 @@ nav:
     
     - Utilização:
         - utilizacao/index.md
-        - utilizacao/missao.md
-        - utilizacao/simulacao.md
+        - Calibração da câmera: utilizacao/calibracaoCamera.md
+        - Missão: utilizacao/missao.md
+        - Simulação: utilizacao/simulacao.md
 
     - Hardware:
         - hardware/index.md
-        - hardware/controladora_de_voo.md
-        - hardware/frame.md
+        - Controladora de voo: hardware/controladora_de_voo.md
+        - Frame: hardware/frame.md
     
     - Software:
         - software/index.md

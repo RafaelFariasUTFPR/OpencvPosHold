@@ -12,7 +12,6 @@ import os
 
 CHESS_BOARD_DIM = (9, 6)
 SQUARE_SIZE = 26  # - mm
-show_detections = True
 
 calib_data_path = "./calib_data"
 CHECK_DIR_CALIB = os.path.isdir(calib_data_path)
@@ -77,16 +76,20 @@ def main():
 
         retval, corners = cv2.findChessboardCorners(gray, patternsize)
 
-        if show_detections:
-            display = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
-            cv2.drawChessboardCorners(display, patternsize, corners, retval)
-            cv2.imshow(win, display)
-            while cv2.waitKey(5) not in range(128):
-                pass
+        display = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+        cv2.drawChessboardCorners(display, patternsize, corners, retval)
+        cv2.imshow(win, display)
+        key = cv2.waitKey(0)
 
+        if key == ord("q"):
+            exit()
+        if key != ord("s"):
+            continue
+        
         if not retval:
             print("warning: no chessboard found in {}, skipping".format(filename))
         else:
+            print("Image saved")
             ipoints.append(corners)
 
     print("Calibrando")
@@ -128,7 +131,7 @@ def main():
     print("  cy = {}".format(K[1, 2]))
     print()
     print("pastable into Python:")
-    print("  fx, fy, cx, cy = {}".format(repr(params)))
+    print("cam_params = {}".format(repr(params)))
     print()
     np.savez(f"{calib_data_path}/CamParam", cameraParams=params)
 

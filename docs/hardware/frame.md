@@ -36,3 +36,7 @@ Seu corpo principal foi impresso em uma impressora 3d e canibalizou os braços e
 ![Frame customizado](2023-01-26-20-58-54.png){ width="300"}
 
 ___
+
+## Desenvolvimento
+
+Este capitulo descreverá o processo de desenvolvimento e fabricação do frame customizado, para que terceiros sejam capazes de reproduzi-lo.
